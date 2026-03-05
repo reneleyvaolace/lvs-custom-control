@@ -1,6 +1,6 @@
 /**
- * LVS Control · app.js · v1.3.0
- * Controlador Web Bluetooth para dispositivo Love Spouse 8154 (wbMSE)
+ * LVS Control · app.js · v1.4.0
+ * Controlador Web Bluetooth para dispositivo Love Spouse (8154 / 7043)
  * Autor: Antigravity Agent · 2026-03-04
  *
  * Modelo objetivo  : Love Spouse 8154 (BLE name prefix: wbMSE)
@@ -23,13 +23,18 @@
  * Paquete modo 18B (advertising manufacturer data completo):
  *   [FF FF 00] + [6D B6 43 CE 97 FE 42 7C] + [CMD 3B] + [03 03 8F AE]
  *
- * Comandos verificados (Bluetooth-LE-Spam + confirmación usuario):
- *   Stop : E5 15 7D (Classic Stop)
- *   Baja : E4 9C 6C (Classic 1)
- *   Media: E7 07 5E (Classic 2)
- *   Alta : E6 8E 4F (Classic 3)
+ * Comandos verificados:
+ *   Stop : E5 15 7D
+ *   Baja : E4 9C 6C
+ *   Media: E7 07 5E
+ *   Alta : E6 8E 4F
  * ────────────────────────────────────────────────────────────
  */
+
+const MODELS = {
+  '8154': { id: '8154', name: 'Knight No. 3', blePrefix: 'wbMSE' },
+  '7043': { id: '7043', name: 'ZBTD015', blePrefix: 'wbMSE' }
+};
 
 'use strict';
 
@@ -71,6 +76,7 @@ let gShakeMode = false;  // estado del modo shake
 let gShakeThrottle = null;   // para throttle del acelerómetro
 let gShakeLastCmd = null;   // último comando enviado por shake
 let gMainIntensity = 0;     // Intensidad del slider principal (0-100)
+let gActiveModel = '8154';  // Model por defecto
 
 /* ══════════════════════════════════════════════════════════
    REFERENCIAS DOM
@@ -118,6 +124,8 @@ const el = {
   mainIntensitySlider: $('mainIntensitySlider'),
   mainIntensityVal: $('mainIntensityVal'),
   mainIntensityHex: $('mainIntensityHex'),
+  activeModelTitle: $('activeModelTitle'),
+  targetNamePrefix: $('targetNamePrefix'),
 };
 
 /* ══════════════════════════════════════════════════════════
@@ -202,8 +210,11 @@ function setConnectedUI(connected, name = '') {
     $('dbBtnMark').disabled = false;
     $('dbBtnSweepStart').disabled = false;
     el.mainIntensitySlider.disabled = false;
+    dbStopBurst();
+    // Bloquear selector de modelo mientras está conectado
+    $$('.ms-tab').forEach(b => b.disabled = true);
   } else {
-    el.connectSubtitle.innerHTML = 'Buscando dispositivo <code>wbMSE</code> via Web Bluetooth';
+    el.connectSubtitle.innerHTML = `Buscando dispositivo <code id="targetNamePrefix">wbMSE${gActiveModel}</code> via Web Bluetooth`;
     setStatus('disconnected');
     enableSpeedBtns(false);
     el.btnShake.disabled = true;
@@ -219,8 +230,12 @@ function setConnectedUI(connected, name = '') {
     $('dbBtnSweepStart').disabled = true;
     dbStopSweep();
     dbStopBurst();
+    // Habilitar selector de modelo
+    $$('.ms-tab').forEach(b => b.disabled = false);
   }
 }
+
+const $$ = sel => document.querySelectorAll(sel);
 
 function enableSpeedBtns(on) {
   [el.btnLow, el.btnMed, el.btnHigh, el.btnStop].forEach(b => {
@@ -324,17 +339,17 @@ async function handleConnect() {
     setStatus('scanning');
     el.btIconWrapper.className = 'card-icon spinning';
     el.btnConnect.disabled = true;
-    log('Iniciando escaneo priorizando "wbMSE" / 8154…', 'info');
+
+    const m = MODELS[gActiveModel];
+    const targetFullName = `${m.blePrefix}${m.id}`;
+
+    log(`Iniciando escaneo para "${targetFullName}" (${m.name})…`, 'info');
 
     gDevice = await navigator.bluetooth.requestDevice({
       filters: [
-        { namePrefix: 'wbMSE' },                                         // ← máxima prioridad
-        { name: 'LVS-8154' },
-        { namePrefix: '8154' },
-        { manufacturerData: [{ companyIdentifier: COMPANY_ID }] },
-        { namePrefix: 'LVS' },
-        { namePrefix: 'Love' },
-        { namePrefix: 'Spouse' },
+        { name: targetFullName },                                        // ← Filtro exacto por nombre+barcode
+        { namePrefix: targetFullName },
+        { namePrefix: m.blePrefix },
       ],
       optionalServices: [
         SERVICE_UUID,
@@ -672,14 +687,38 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!navigator.bluetooth) {
     log('❌ Web Bluetooth no soportado. Usa Chrome o Edge.', 'error');
   } else {
-    log(`✓ Navegador OK. Listo para escanear "wbMSE".`, 'success');
+    log(`✓ Navegador OK. Listo para escanear.`, 'success');
   }
 
-  // Init slider visual
-  updateInterval(gBurstMs);
+  // Cargar modelo guardado
+  const saved = localStorage.getItem('lvs_active_model');
+  if (saved && MODELS[saved]) selectModel(saved);
+  else updateInterval(gBurstMs);
+
   // Init debug
   dbInit();
 });
+
+/* ══════════════════════════════════════════════════════════
+   SELECCIÓN DE MODELO
+   ══════════════════════════════════════════════════════════ */
+function selectModel(id) {
+  if (gDevice && gDevice.gatt.connected) return; // No cambiar mientras está conectado
+
+  gActiveModel = id;
+  localStorage.setItem('lvs_active_model', id);
+
+  const m = MODELS[id];
+
+  // Actualizar UI
+  $$('.ms-tab').forEach(b => b.classList.remove('active'));
+  $(`tab-${id}`).classList.add('active');
+
+  el.activeModelTitle.innerHTML = `Love Spouse <span class="model-tag">${m.id}</span>`;
+  el.targetNamePrefix.textContent = `${m.blePrefix}${m.id}`;
+
+  log(`Modelo seleccionado: ${m.name} (${m.id})`, 'info');
+}
 
 /* ════════════════════════════════════════════════════════
    MODO DEBUG — v1.3.0

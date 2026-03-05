@@ -41,7 +41,7 @@
         </div>
         <div class="brand-text">
           <span class="brand-name">LVS Control</span>
-          <span class="brand-sub">wbMSE · 8154 · v1.3</span>
+          <span class="brand-sub">wbMSE · v1.4</span>
         </div>
       </div>
       <div class="header-status-group">
@@ -61,6 +61,21 @@
 
     <!-- Conexión -->
     <section class="card connect-card" aria-label="Conexión Bluetooth">
+      <!-- Device Selector -->
+      <div class="model-selector">
+        <span class="ms-label">Seleccionar Dispositivo:</span>
+        <div class="ms-tabs">
+          <button class="ms-tab active" id="tab-8154" onclick="selectModel('8154')">
+            <span class="ms-id">8154</span>
+            <span class="ms-name">Knight No. 3</span>
+          </button>
+          <button class="ms-tab" id="tab-7043" onclick="selectModel('7043')">
+            <span class="ms-id">7043</span>
+            <span class="ms-name">ZBTD015</span>
+          </button>
+        </div>
+      </div>
+
       <div class="connect-inner">
         <div class="card-icon" id="btIconWrapper">
           <svg id="btIcon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -69,8 +84,9 @@
           </svg>
         </div>
         <div class="connect-info">
-          <h1 class="card-title">Love Spouse <span class="model-tag">8154</span></h1>
-          <p class="card-subtitle" id="connectSubtitle">Buscando dispositivo <code>wbMSE</code> via Web Bluetooth</p>
+          <h1 class="card-title" id="activeModelTitle">Love Spouse <span class="model-tag">8154</span></h1>
+          <p class="card-subtitle" id="connectSubtitle">Buscando dispositivo <code
+              id="targetNamePrefix">wbMSE8154</code> via Web Bluetooth</p>
           <div class="device-info hidden" id="deviceInfo">
             <span class="device-label">Conectado</span>
             <span class="device-name" id="deviceName">wbMSE</span>
