@@ -13,6 +13,7 @@
     href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap"
     rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 
 <body>
@@ -25,7 +26,54 @@
 
   <main class="app">
 
-    <!-- Header -->
+    <div class="intiface-sidebar">
+      <div class="intiface-sidebar-brand">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        Intiface Control
+      </div>
+      <ul class="intiface-sidebar-menu">
+        <li class="active">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/></svg>
+          Devices
+        </li>
+        <li onclick="toggleSettings()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Settings
+        </li>
+      </ul>
+    </div>
+    
+    <div class="intiface-main">
+      <div class="intiface-header">
+        <h1>Devices</h1>
+        <div style="display:flex; gap:10px;">
+          <button class="btn-intiface-primary" style="background:#2d2d3d; border:1px solid #4b7bec;" id="btnDeepScanIntiface" onclick="toggleDeepScan()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            Deep Scan
+          </button>
+                    <button class="btn-intiface-primary" style="background:#2d2d3d; border:1px solid #eb3b5a;" id="btnQrScanIntiface" onclick="openQrScanner()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4z"></path><path d="M14 14v6M17 14v6M20 14h-6"></path></svg>
+            Scan QR
+          </button>
+                    <input type="file" id="qrFileInput" accept="image/*" style="display:none;" onchange="handleQrImageUpload(event)">
+          <button class="btn-intiface-primary" style="background:#2d2d3d; border:1px solid #eb3b5a;" id="btnQrUploadIntiface" onclick="document.getElementById('qrFileInput').click()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            Subir QR
+          </button>
+          <button class="btn-intiface-primary" onclick="handleAddDeviceIntiface()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Device
+          </button>
+        </div>
+      </div>
+      
+      <div id="intifaceDeviceList" class="device-list-container">
+        <!-- Devices will be generated here -->
+      </div>
+      
+      <!-- Keep the Activity Log visible below -->
+      <section class="card log-card" aria-label="Activity Log" style="margin-top:auto;">
+    
     <header class="app-header">
       <div class="brand">
         <div class="brand-icon" aria-hidden="true">
@@ -60,6 +108,7 @@
     </header>
 
     <!-- Conexión -->
+    <div class="old-cards-wrapper">
     <section class="card connect-card" aria-label="Conexión Bluetooth">
       <!-- Device Selector -->
       <div class="model-selector">
@@ -193,6 +242,10 @@
         <span>Parada de Emergencia</span>
         <code class="stop-hex">E5 15 7D</code>
       </button>
+
+        <button class="btn btn-speed" style="grid-column: span 3; margin-top: 10px; background: var(--pink)" id="btnDual" onclick="openDualModal()" disabled>
+          <span>Abrir Control Dual (Canal 1 y 2)</span>
+        </button>
     </section>
 
     <!-- Shake Mode -->
@@ -464,10 +517,10 @@
 
       </div><!-- /debug-body -->
     </section>
+    </div>
 
     <!-- Activity Log -->
-    <section class="card log-card" aria-label="Activity Log">
-      <div class="log-header">
+    <div class="log-header">
         <h2 class="section-title">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -493,7 +546,47 @@
       </div>
     </section>
 
-  </main>
+  
+    
+    <!-- QR Scanner Modal -->
+    <div id="qrModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px;">
+      <div class="card" style="width: 100%; max-width: 400px; position: relative; border: 1px solid var(--border); background: var(--card-bg);">
+        <button onclick="closeQrScanner()" style="position: absolute; right: 15px; top: 15px; background: none; border: none; color: white; cursor: pointer; font-size: 20px; z-index: 1001;">&times;</button>
+        <h2 class="section-title" style="margin-bottom: 20px;">Escáner QR</h2>
+        <div id="qr-reader" style="width:100%; background:white;"></div>
+        <div id="qr-result" style="margin-top: 15px; color: #aaaab3; font-size: 14px; text-align: center;">Apunta al código QR del juguete/manual.</div>
+      </div>
+    </div>
+
+    <!-- Dual Control Modal -->
+    <div id="dualModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px;">
+      <div class="card" style="width: 100%; max-width: 400px; position: relative; border: 1px solid var(--border);">
+        <button id="btnDualClose" onclick="closeDualModal()" style="position: absolute; right: 15px; top: 15px; background: none; border: none; color: white; cursor: pointer; font-size: 20px;">&times;</button>
+        <h2 class="section-title" style="margin-bottom: 20px;">Control Dual</h2>
+        
+        <!-- Canal 1 -->
+        <h3 style="color: var(--pink); font-size: 14px; margin-bottom: 10px;">Canal 1</h3>
+        <div class="speed-row" style="margin-bottom: 20px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+           <button class="btn ch1-btn" id="b1_low" onclick="selectDualSpeed('CH1_LOW', 'b1_low', 1)">Baja</button>
+           <button class="btn ch1-btn" id="b1_med" onclick="selectDualSpeed('CH1_MED', 'b1_med', 1)">Media</button>
+           <button class="btn ch1-btn" id="b1_hi" onclick="selectDualSpeed('CH1_HIGH', 'b1_hi', 1)">Alta</button>
+           <button class="btn ch1-btn stop-btn" id="b1_stop" onclick="selectDualSpeed('CH1_STOP', 'b1_stop', 1)">Stop</button>
+        </div>
+
+        <!-- Canal 2 -->
+        <h3 style="color: var(--pink); font-size: 14px; margin-bottom: 10px;">Canal 2</h3>
+        <div class="speed-row" style="margin-bottom: 10px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+           <button class="btn ch2-btn" id="b2_low" onclick="selectDualSpeed('CH2_LOW', 'b2_low', 2)">Baja</button>
+           <button class="btn ch2-btn" id="b2_med" onclick="selectDualSpeed('CH2_MED', 'b2_med', 2)">Media</button>
+           <button class="btn ch2-btn" id="b2_hi" onclick="selectDualSpeed('CH2_HIGH', 'b2_hi', 2)">Alta</button>
+           <button class="btn ch2-btn stop-btn" id="b2_stop" onclick="selectDualSpeed('CH2_STOP', 'b2_stop', 2)">Stop</button>
+        </div>
+      </div>
+    </div>
+    
+  </div></section>
+</div> <!-- end intiface-main -->
+</main>
 
   <script src="app.js"></script>
 </body>

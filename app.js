@@ -60,6 +60,23 @@ const CMD = {
   LOW: new Uint8Array([0xE4, 0x9C, 0x6C]),   // Classic 1 / Baja
   MED: new Uint8Array([0xE7, 0x07, 0x5E]),   // Classic 2 / Media
   HIGH: new Uint8Array([0xE6, 0x8E, 0x4F]),   // Classic 3 / Alta
+  // Channel 1
+  CH1_STOP: new Uint8Array([0xD5, 0x96, 0x4C]),
+  CH1_LOW: new Uint8Array([0xD4, 0x1F, 0x5D]),
+  CH1_MED: new Uint8Array([0xD7, 0x84, 0x6F]),
+  CH1_HIGH: new Uint8Array([0xD6, 0x0D, 0x7E]),
+  // Channel 2
+  CH2_STOP: new Uint8Array([0xA5, 0x11, 0x3F]),
+  CH2_LOW: new Uint8Array([0xA4, 0x98, 0x2E]),
+  CH2_MED: new Uint8Array([0xA7, 0x03, 0x1C]),
+  CH2_HIGH: new Uint8Array([0xA6, 0x8A, 0x0D]),
+  // Modos Rítmicos Extraídos
+  ALL_PAT_1: new Uint8Array([0xE1, 0x31, 0x3B]),
+  ALL_PAT_2: new Uint8Array([0xE0, 0xB8, 0x2A]), // Fast pulse
+  ALL_PAT_3: new Uint8Array([0xE3, 0x23, 0x18]),
+  ALL_PAT_4: new Uint8Array([0xE2, 0xAA, 0x09]),
+  ALL_PAT_5: new Uint8Array([0xED, 0x5D, 0xF1]),
+  ALL_PAT_6: new Uint8Array([0xEC, 0xD4, 0xE0]),
 };
 
 /* ══════════════════════════════════════════════════════════
@@ -128,6 +145,8 @@ const el = {
   activeModelTitle: $('activeModelTitle'),
   targetNamePrefix: $('targetNamePrefix'),
   btnDeepScanMain: $('btnDeepScanMain'),
+  btnDual: $('btnDual'),
+  btnDualClose: $('btnDualClose'),
 };
 
 /* ══════════════════════════════════════════════════════════
@@ -211,6 +230,7 @@ function setConnectedUI(connected, name = '') {
     enableSpeedBtns(true);
     $('dbBtnMark').disabled = false;
     $('dbBtnSweepStart').disabled = false;
+    if (el.btnDual) el.btnDual.disabled = false;
     el.mainIntensitySlider.disabled = false;
     dbStopBurst();
     // Bloquear selector de modelo mientras está conectado
@@ -219,7 +239,7 @@ function setConnectedUI(connected, name = '') {
     el.connectSubtitle.innerHTML = `Buscando dispositivo <code id="targetNamePrefix">wbMSE${gActiveModel}</code> via Web Bluetooth`;
     setStatus('disconnected');
     enableSpeedBtns(false);
-    el.btnShake.disabled = true;
+    el.btnShake.disabled = true; if (el.btnDual) el.btnDual.disabled = true;
     el.mainIntensitySlider.disabled = true;
     el.batteryBadge.classList.add('hidden');
     stopShakeMode();
@@ -338,9 +358,15 @@ async function handleConnect() {
     return;
   }
   try {
-    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-      log('❌ Error de seguridad: Web Bluetooth requiere HTTPS o localhost.', 'error');
-      alert('¡Atención! Web Bluetooth solo funciona en sitios seguros.\nUsa http://localhost:3000 o una conexión HTTPS.');
+    const isLocal = window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.hostname.startsWith('192.168.') ||
+      window.location.hostname.startsWith('10.') ||
+      window.location.hostname.startsWith('172.');
+
+    if (window.location.protocol !== 'https:' && !isLocal) {
+      log('❌ Error de seguridad: Web Bluetooth requiere HTTPS o IP Local.', 'error');
+      alert('¡Atención! Web Bluetooth requiere una conexión segura.\nUsa HTTPS o asegúrate de estar en una IP local/localhost.');
       return;
     }
     setStatus('scanning');
@@ -745,6 +771,18 @@ function toggleDeepScan() {
   gDeepScan = !gDeepScan;
   if (el.btnDeepScan) el.btnDeepScan.classList.toggle('on', gDeepScan);
   if (el.btnDeepScanMain) el.btnDeepScanMain.classList.toggle('active', gDeepScan);
+
+  const intifaceBtn = document.getElementById('btnDeepScanIntiface');
+  if (intifaceBtn) {
+    if (gDeepScan) {
+      intifaceBtn.style.background = '#eb3b5a';
+      intifaceBtn.innerText = 'Deep Scan (ON)';
+    } else {
+      intifaceBtn.style.background = '#2d2d3d';
+      intifaceBtn.innerText = 'Deep Scan';
+    }
+  }
+
   log(`Modo de escaneo profundo: ${gDeepScan ? 'ACTIVADO' : 'DESACTIVADO'}`, gDeepScan ? 'warn' : 'info');
 }
 
@@ -1047,3 +1085,365 @@ function dbCopyMarks() {
     .catch(() => log('Error al copiar. Revisa permisos de clipboard.', 'error'));
 }
 
+
+/* ══════════════════════════════════════════════════════════
+   MODO DUAL (MODAL)
+   ══════════════════════════════════════════════════════════ */
+function openDualModal() {
+  const modal = document.getElementById('dualModal');
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closeDualModal() {
+  const modal = document.getElementById('dualModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function selectDualSpeed(cmdKey, btnId, channel) {
+  if (!gChar) { log('No conectado para enviar a canal ' + channel, 'warn'); return; }
+
+  // Update active UI for this channel
+  document.querySelectorAll('.ch' + channel + '-btn').forEach(b => b.classList.remove('active-btn'));
+  if (btnId) {
+    document.getElementById(btnId).classList.add('active-btn');
+  }
+
+  startBurst(cmdKey);
+  log('Canal ' + channel + ' comando: ' + cmdKey, 'info');
+}
+
+/* ══════════════════════════════════════════════════════════
+   INTIFACE MULTI-DEVICE SUPPORT
+   ══════════════════════════════════════════════════════════ */
+let gMultiDevices = {}; // Store all connected devices
+
+
+/* ══════════════════════════════════════════════════════════
+   QR SCANNER INTEGRATION
+   ══════════════════════════════════════════════════════════ */
+let html5QrcodeScanner = null;
+let gScannedId = null;
+
+function openQrScanner() {
+  document.getElementById('qrModal').classList.remove('hidden');
+  document.getElementById('qr-result').innerText = 'Apunta al código QR del juguete/manual.';
+  if (!html5QrcodeScanner) {
+    html5QrcodeScanner = new Html5QrcodeScanner(
+      "qr-reader",
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      false);
+    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+  }
+}
+
+function closeQrScanner() {
+  document.getElementById('qrModal').classList.add('hidden');
+  if (html5QrcodeScanner) {
+    html5QrcodeScanner.clear().catch(e => console.error(e));
+    html5QrcodeScanner = null;
+  }
+}
+
+function onScanSuccess(decodedText, decodedResult) {
+  log(`QR Scaneado exitosamente: ${decodedText}`, 'success');
+
+  // Asignar prefijo global extraído del QR (ej. "8154")
+  gScannedId = decodedText;
+
+  // Mostrar botón para que el usuario inicie explícitamente la conexión
+  document.getElementById('qr-result').innerHTML = `
+        <div style="margin-bottom: 10px; color: #4b7bec;">ID Detectado: <strong>${decodedText}</strong></div>
+        <button class="btn-intiface-primary" style="width:100%; justify-content:center; background:#4b7bec; margin-top:10px;" onclick="closeQrScanner(); handleAddDeviceIntiface();">
+            Lanzar vinculación Bluetooth
+        </button>
+    `;
+
+  if (html5QrcodeScanner) {
+    // Pausar el escáner para que no siga leyendo intermitentemente
+    html5QrcodeScanner.pause();
+  }
+}
+
+
+function handleQrImageUpload(event) {
+  if (event.target.files.length === 0) return;
+  const file = event.target.files[0];
+
+  document.getElementById('qrModal').classList.remove('hidden');
+  document.getElementById('qr-result').innerHTML = 'Procesando imagen... espere';
+
+  const html5QrCode = new Html5Qrcode("qr-reader");
+  html5QrCode.scanFile(file, true)
+    .then(decodedText => {
+      html5QrCode.clear();
+      onScanSuccess(decodedText, null);
+    })
+    .catch(err => {
+      document.getElementById('qr-result').innerHTML = `<span style="color:#eb3b5a">Error: No se detectó un QR válido en la imagen.</span>`;
+      log('Error escaseando QR desde imagen: ' + err, 'error');
+      setTimeout(() => {
+        closeQrScanner();
+        html5QrCode.clear();
+      }, 3000);
+    });
+
+  // Resetear valor para que dispare de nuevo si sube el mismo archivo
+  event.target.value = '';
+}
+
+function onScanFailure(error) {
+  // Ignorar frames vacíos
+}
+
+async function handleAddDeviceIntiface() {
+  // Escaneo normal
+  const isLocal = window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname.startsWith('192.168.') ||
+    window.location.hostname.startsWith('10.') ||
+    window.location.hostname.startsWith('172.');
+
+  if (!navigator.bluetooth && !isLocal) {
+    alert('Web Bluetooth no soportado o no disponible en esta conexión.');
+    return;
+  }
+
+  // Si navigator.bluetooth es nulo en IP local, es casi seguro por HTTP
+  if (!navigator.bluetooth && isLocal && window.location.protocol !== 'https:') {
+    alert('Web Bluetooth bloqueado por el navegador.\\n\\nDebes habilitar la "flag" en Chrome de tu celular para esta IP:\\nchrome://flags/#unsafely-treat-insecure-origin-as-secure');
+    return;
+  }
+  try {
+    const commonServices = [
+      COMPANY_ID, '0000ffe0-0000-1000-8000-00805f9b34fb', '0000fff0-0000-1000-8000-00805f9b34fb',
+      'battery_service', '0000fff1-0000-1000-8000-00805f9b34fb', '0000fff2-0000-1000-8000-00805f9b34fb',
+      '0000fff5-0000-1000-8000-00805f9b34fb', '0000fee9-0000-1000-8000-00805f9b34fb',
+      '0000180a-0000-1000-8000-00805f9b34fb'
+    ];
+    let options;
+    if (gDeepScan) {
+      options = {
+        acceptAllDevices: true,
+        optionalServices: commonServices
+      };
+    } else {
+      options = {
+        filters: [
+          { namePrefix: 'wb' }, { namePrefix: 'LVS' }, { namePrefix: 'Love' },
+          ...(gScannedId ? [{ namePrefix: gScannedId }] : []),
+          { namePrefix: '8154' }, { namePrefix: '7043' },
+          // Filtro por servicio (permitirá ver dispositivos sin nombre que lo anuncien)
+          { services: ['0000fff0-0000-1000-8000-00805f9b34fb'] },
+          { services: ['0000fee9-0000-1000-8000-00805f9b34fb'] }
+        ],
+        optionalServices: commonServices
+      };
+    }
+    const device = await navigator.bluetooth.requestDevice(options);
+    log(`✓ Multi: Encontrado: "${device.name}"`, 'success');
+
+    device.addEventListener('gattserverdisconnected', () => {
+      log(`⚠️ Dispositivo desconectado: ${device.name}`, 'warn');
+      if (gMultiDevices[device.id] && gMultiDevices[device.id].burstInterval) {
+        clearInterval(gMultiDevices[device.id].burstInterval);
+      }
+      delete gMultiDevices[device.id];
+      renderIntifaceDeviceList();
+    });
+
+    const server = await device.gatt.connect();
+    let service;
+    try {
+      service = await server.getPrimaryService('0000fff0-0000-1000-8000-00805f9b34fb');
+    } catch {
+      const svcs = await server.getPrimaryServices();
+      service = svcs.find(s => s.uuid.includes('fff0') || s.uuid.includes('ffe0') || s.uuid.includes('fff1')) || svcs[0];
+    }
+    if (!service) throw new Error('Servicio primario no encontrado');
+    const chars = await service.getCharacteristics();
+    let ch = chars.find(c => c.uuid.includes('fff2')) || chars.find(c => c.properties.writeWithoutResponse || c.properties.write);
+
+    if (!ch) throw new Error('No write char found');
+
+    // Add to map
+    gMultiDevices[device.id] = {
+      id: device.id,
+      name: device.name || 'wbMSE',
+      device,
+      server,
+      char: ch,
+      intensity: 0,
+      burstInterval: null
+    };
+
+    log(`✅ Conectado y añadido al Dashboard: ${device.name}`, 'success');
+    renderIntifaceDeviceList();
+
+  } catch (err) {
+    log(`Multi Error: ${err.message}`, 'error');
+  }
+}
+
+function updateDeviceIntensity(devId, value) {
+  const dev = gMultiDevices[devId];
+  if (!dev) return;
+
+  dev.intensity = parseInt(value, 10);
+  document.getElementById('lbl_int_' + devId).innerText = dev.intensity + '%';
+
+  const intensityByte = Math.round(dev.intensity * 2.55);
+  const cmd = new Uint8Array([0xE6, 0x8E, intensityByte]);
+
+  if (dev.burstInterval) clearInterval(dev.burstInterval);
+
+  if (dev.intensity === 0) {
+    // Stop command
+    dev.char.writeValueWithoutResponse(buildPacket(CMD.STOP)).catch(e => console.error(e));
+    return;
+  }
+
+  // Send immediately then burst
+  dev.char.writeValueWithoutResponse(buildPacket(cmd)).catch(e => console.error(e));
+  dev.burstInterval = setInterval(() => {
+    dev.char.writeValueWithoutResponse(buildPacket(cmd)).catch(e => console.error(e));
+  }, gBurstMs);
+}
+
+function stopDeviceIntiface(devId) {
+  const dev = gMultiDevices[devId];
+  if (!dev) return;
+  document.getElementById('slider_' + devId).value = 0;
+  updateDeviceIntensity(devId, 0);
+}
+
+function disconnectDeviceIntiface(devId) {
+  const dev = gMultiDevices[devId];
+  if (dev && dev.device.gatt.connected) {
+    dev.device.gatt.disconnect();
+  }
+}
+
+
+function sendDevicePattern(devId, patKey) {
+  const dev = gMultiDevices[devId];
+  if (!dev || !dev.char) return;
+  const cmd = CMD[patKey];
+  if (!cmd) return;
+
+  try {
+    let value = new Uint8Array(11);
+    value.set(PKT_PREFIX, 0);
+    value.set(cmd, 8);
+    dev.char.writeValueWithoutResponse(value).catch(e => log('Pattern write err: ' + e.message, 'error'));
+    log(`Pattern ${patKey} sent to ${dev.name}`, 'success');
+
+    // Reset slider purely visually to avoid confusion since pattern overrides intensity
+    const s = document.getElementById('slider_' + devId);
+    if (s) { s.value = 0; document.getElementById('lbl_int_' + devId).innerText = 'Rhythmic Mode'; }
+  } catch (err) {
+    log('Failed pattern: ' + err.message, 'error');
+  }
+}
+
+
+function sendDevicePattern(devId, patKey) {
+  const dev = gMultiDevices[devId];
+  if (!dev || !dev.device.gatt.connected || !dev.char) return;
+  const cmd = CMD[patKey];
+  if (!cmd) return;
+
+  try {
+    let value = new Uint8Array(11);
+    value.set(PKT_PREFIX, 0);
+    value.set(cmd, 8);
+    dev.char.writeValueWithoutResponse(value).catch(e => log('Pattern write err: ' + e.message, 'error'));
+    log(`Pattern ${patKey} sent to ` + dev.name, 'success');
+
+    // Reset slider purely visually to avoid confusion since pattern overrides intensity
+    const s = document.getElementById('slider_' + devId);
+    if (s) {
+      s.value = 0;
+      const lbl = document.getElementById('lbl_int_' + devId);
+      if (lbl) lbl.innerText = 'Rhythmic';
+    }
+  } catch (err) {
+    log('Failed pattern: ' + err.message, 'error');
+  }
+}
+
+function sendDevicePattern(devId, patKey) {
+  const dev = gMultiDevices[devId];
+  if (!dev || !dev.device.gatt.connected || !dev.char) return;
+  const cmd = CMD[patKey];
+  if (!cmd) return;
+
+  try {
+    let value = new Uint8Array(11);
+    value.set(PKT_PREFIX, 0);
+    value.set(cmd, 8);
+    dev.char.writeValueWithoutResponse(value).catch(e => log('Pattern write err: ' + e.message, 'error'));
+    log(`Pattern ${patKey} sent to ` + dev.name, 'success');
+
+    const s = document.getElementById('slider_' + devId);
+    if (s) {
+      s.value = 0;
+      const lbl = document.getElementById('lbl_int_' + devId);
+      if (lbl) lbl.innerText = 'MODE';
+    }
+  } catch (err) {
+    log('Failed pattern: ' + err.message, 'error');
+  }
+}
+
+function renderIntifaceDeviceList() {
+  const container = document.getElementById('intifaceDeviceList');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  Object.values(gMultiDevices).forEach(dev => {
+    const card = document.createElement('div');
+    card.className = 'device-card-intiface';
+
+    card.innerHTML = `
+            <div class="device-card-header">
+                <div class="device-card-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4b7bec" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                    ${dev.name}
+                    <span style="font-size:12px; color:#aaaab3; font-weight:normal;">(${dev.id.substring(0, 8)}...)</span>
+                </div>
+                <button class="btn-intiface-stop" style="background:transparent; border:1px solid #eb3b5a; color:#eb3b5a;" onclick="disconnectDeviceIntiface('${dev.id}')">Disconnect</button>
+            </div>
+            
+            <div style="font-size:14px; color:#aaaab3; padding-left:5px;">Vibrate</div>
+            <div class="device-slider-row">
+                <input type="range" id="slider_${dev.id}" min="0" max="100" value="${dev.intensity}" oninput="updateDeviceIntensity('${dev.id}', this.value)" />
+                <span id="lbl_int_${dev.id}" style="width:40px; text-align:right; font-family:monospace;">${dev.intensity}%</span>
+                <button class="btn-intiface-stop" onclick="stopDeviceIntiface('${dev.id}')">Stop</button>
+            </div>
+            
+            <!-- Dual Control (Optional) -->
+            <div style="margin-top:10px; display:flex; gap:10px;">
+               <button class="btn-intiface-primary" style="flex:1; background:#2d2d3d; font-size:12px; justify-content:center;" onclick="document.getElementById('slider_${dev.id}').value=50; updateDeviceIntensity('${dev.id}', 50)">Vibrate 50%</button>
+               <button class="btn-intiface-primary" style="flex:1; background:#2d2d3d; font-size:12px; justify-content:center;" onclick="document.getElementById('slider_${dev.id}').value=100; updateDeviceIntensity('${dev.id}', 100)">Vibrate 100%</button>
+            </div>
+            <div style="font-size:14px; color:#aaaab3; padding-left:5px; margin-top:15px;">Rhythmic Modes</div>
+            <div style="display:flex; flex-wrap:wrap; gap:5px; margin-top:5px;">
+                <button class="btn-intiface-primary" style="flex:1 1 30%; background:#2d2d3d; font-size:12px; justify-content:center; padding:8px 0;" onclick="sendDevicePattern('${dev.id}', 'ALL_PAT_1')">P1</button>
+                <button class="btn-intiface-primary" style="flex:1 1 30%; background:#2d2d3d; font-size:12px; justify-content:center; padding:8px 0;" onclick="sendDevicePattern('${dev.id}', 'ALL_PAT_2')">Pulse</button>
+                <button class="btn-intiface-primary" style="flex:1 1 30%; background:#2d2d3d; font-size:12px; justify-content:center; padding:8px 0;" onclick="sendDevicePattern('${dev.id}', 'ALL_PAT_3')">P3</button>
+                <button class="btn-intiface-primary" style="flex:1 1 30%; background:#2d2d3d; font-size:12px; justify-content:center; padding:8px 0;" onclick="sendDevicePattern('${dev.id}', 'ALL_PAT_4')">P4</button>
+                <button class="btn-intiface-primary" style="flex:1 1 30%; background:#2d2d3d; font-size:12px; justify-content:center; padding:8px 0;" onclick="sendDevicePattern('${dev.id}', 'ALL_PAT_5')">P5</button>
+                <button class="btn-intiface-primary" style="flex:1 1 30%; background:#2d2d3d; font-size:12px; justify-content:center; padding:8px 0;" onclick="sendDevicePattern('${dev.id}', 'ALL_PAT_6')">P6</button>
+            </div>
+        `;
+    container.appendChild(card);
+  });
+
+  if (Object.keys(gMultiDevices).length === 0) {
+    container.innerHTML = '<div style="color:#aaaab3; font-style:italic; padding:20px 0;">No devices connected. Click "Add Device" to start.</div>';
+  }
+}
+
+// Initial render fix for empty state
+document.addEventListener('DOMContentLoaded', () => { setTimeout(renderIntifaceDeviceList, 500); });

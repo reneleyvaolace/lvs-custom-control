@@ -1910,3 +1910,27 @@ body {
   color: var(--pink);
   font-weight: 700;
 }
+/* --- INTIFACE CENTRAL STYLE OVERRIDES --- */
+.app { display: flex; flex-direction: row; height: 100vh; max-width: 100%; border-radius: 0; padding: 0; background: #0f0f13; border: none; overflow: hidden; }
+.app-header { display: none; } /* Hide old header */
+body { background: #0f0f13; margin: 0; color: #e1e1e6; }
+.intiface-sidebar { width: 280px; background: #1a1a24; border-right: 1px solid #2d2d3d; display: flex; flex-direction: column; padding: 20px 0; }
+.intiface-sidebar-brand { padding: 0 20px 20px 20px; font-weight: 700; font-size: 20px; border-bottom: 1px solid #2d2d3d; color: #4b7bec; display:flex; align-items:center; gap:10px; }
+.intiface-sidebar-menu { list-style: none; padding: 20px 0; margin: 0; }
+.intiface-sidebar-menu li { padding: 12px 20px; color: #aaaab3; cursor: pointer; transition: 0.2s; display:flex; align-items:center; gap:12px; }
+.intiface-sidebar-menu li:hover { background: #2d2d3d; color: #fff; }
+.intiface-sidebar-menu li.active { background: #4b7bec20; color: #4b7bec; border-right: 3px solid #4b7bec; }
+.intiface-main { flex: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+.intiface-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.intiface-header h1 { margin: 0; font-size: 24px; font-weight: 600; }
+.device-list-container { display: flex; flex-direction: column; gap: 15px; }
+.device-card-intiface { background: #20202c; border: 1px solid #2d2d3d; border-radius: 8px; padding: 20px; display:flex; flex-direction:column; gap:15px; }
+.device-card-header { display: flex; justify-content: space-between; align-items: center; }
+.device-card-title { font-weight: 600; font-size: 16px; display: flex; align-items: center; gap: 10px; }
+.device-slider-row { display: flex; align-items: center; gap: 15px; padding: 10px; background: #1a1a24; border-radius: 6px; }
+.device-slider-row input[type=range] { flex: 1; }
+.btn-intiface-primary { background: #4b7bec; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; display:flex; align-items:center; gap:8px; transition: 0.2s; }
+.btn-intiface-primary:hover { background: #3867d6; }
+.btn-intiface-stop { background: #eb3b5a; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+.btn-intiface-stop:hover { background: #fc5c65; }
+.old-cards-wrapper { display: none; } /* Hide old UI blocks, but keep them in DOM for logic */
