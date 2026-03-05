@@ -127,7 +127,7 @@ const el = {
   mainIntensityHex: $('mainIntensityHex'),
   activeModelTitle: $('activeModelTitle'),
   targetNamePrefix: $('targetNamePrefix'),
-  btnDeepScan: $('btnDeepScan'),
+  btnDeepScanMain: $('btnDeepScanMain'),
 };
 
 /* ══════════════════════════════════════════════════════════
@@ -354,16 +354,20 @@ async function handleConnect() {
 
     // Construir opciones
     let options = {};
+    const commonServices = [
+      SERVICE_UUID,
+      '0000180a-0000-1000-8000-00805f9b34fb',
+      'battery_service',
+      '0000fff1-0000-1000-8000-00805f9b34fb',
+      '0000fff2-0000-1000-8000-00805f9b34fb',
+      '0000fff5-0000-1000-8000-00805f9b34fb',
+      '0000fee9-0000-1000-8000-00805f9b34fb'
+    ];
+
     if (gDeepScan) {
       options = {
         acceptAllDevices: true,
-        optionalServices: [
-          SERVICE_UUID,
-          '0000180a-0000-1000-8000-00805f9b34fb',
-          'battery_service',
-          '0000fff1-0000-1000-8000-00805f9b34fb',
-          '0000fff2-0000-1000-8000-00805f9b34fb'
-        ]
+        optionalServices: commonServices
       };
     } else {
       options = {
@@ -373,15 +377,10 @@ async function handleConnect() {
           { namePrefix: 'Love' },
           { namePrefix: m.id },
           { services: [SERVICE_UUID] },
-          { manufacturerData: [{ companyIdentifier: COMPANY_ID }] }
+          { manufacturerData: [{ companyIdentifier: COMPANY_ID }] },
+          { manufacturerData: [{ companyIdentifier: 0xFFF1 }] }
         ],
-        optionalServices: [
-          SERVICE_UUID,
-          '0000180a-0000-1000-8000-00805f9b34fb',
-          'battery_service',
-          '0000fff1-0000-1000-8000-00805f9b34fb',
-          '0000fff2-0000-1000-8000-00805f9b34fb'
-        ]
+        optionalServices: commonServices
       };
     }
 
@@ -751,7 +750,8 @@ function selectModel(id) {
 
 function toggleDeepScan() {
   gDeepScan = !gDeepScan;
-  el.btnDeepScan.classList.toggle('on', gDeepScan);
+  if (el.btnDeepScan) el.btnDeepScan.classList.toggle('on', gDeepScan);
+  if (el.btnDeepScanMain) el.btnDeepScanMain.classList.toggle('active', gDeepScan);
   log(`Modo de escaneo profundo: ${gDeepScan ? 'ACTIVADO' : 'DESACTIVADO'}`, gDeepScan ? 'warn' : 'info');
 }
 

@@ -1852,3 +1852,61 @@ body {
 .mc-del:hover {
   color: var(--red);
 }
+
+/* 🧬 Deep Scan Button */
+.btn-deep-toggle {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  padding: 11px 16px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.btn-deep-toggle.active {
+  background: rgba(251, 191, 36, 0.1);
+  border-color: var(--amber);
+  color: var(--amber);
+  box-shadow: 0 0 15px rgba(251, 191, 36, 0.15);
+}
+
+/* 🔍 Troubleshoot Hint */
+.troubleshoot-hint {
+  margin-top: 24px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--r-md);
+  border: 1px dashed var(--border);
+}
+
+.troubleshoot-hint span {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--amber);
+  margin-bottom: 10px;
+}
+
+.troubleshoot-hint ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.troubleshoot-hint li {
+  font-size: 11px;
+  color: var(--text-2);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  line-height: 1.4;
+}
+
+.troubleshoot-hint li::before {
+  content: '→';
+  color: var(--pink);
+  font-weight: 700;
+}

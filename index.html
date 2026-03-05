@@ -101,6 +101,10 @@
           </svg>
           Escanear y Conectar
         </button>
+        <button class="btn btn-deep-toggle" id="btnDeepScanMain" onclick="toggleDeepScan()"
+          title="Activar si no encuentras el dispositivo">
+          🧬 MODO PROFUNDO
+        </button>
         <button class="btn btn-disconnect hidden" id="btnDisconnect" onclick="handleDisconnect()">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="18" y1="6" x2="6" y2="18" />
@@ -478,6 +482,15 @@
         </button>
       </div>
       <div class="log-body" id="logBody" role="log" aria-live="polite"></div>
+
+      <div class="troubleshoot-hint">
+        <span>¿No aparece nada?</span>
+        <ul>
+          <li>Asegúrate de que el juguete <strong>no esté conectado al celular</strong>.</li>
+          <li>El juguete debe estar parpadeando (modo búsqueda).</li>
+          <li>Usa el <strong>MODO PROFUNDO</strong> arriba para ver todos los dispositivos.</li>
+        </ul>
+      </div>
     </section>
 
   </main>
