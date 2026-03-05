@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LVS Control · wbMSE / 8154</title>
+  <meta name="description"
+    content="Controlador Bluetooth Web para Love Spouse 8154 (wbMSE). Ráfagas a 250ms, 3 velocidades, modo Shake por acelerómetro." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <div class="bg-orbs" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <main class="app">
+
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
+            <path d="M14 4C9 4 5 8 5 13c0 3.5 2 6.5 5 8l4 3 4-3c3-1.5 5-4.5 5-8 0-5-4-9-9-9z" fill="url(#hg)" />
+            <defs>
+              <linearGradient id="hg" x1="5" y1="4" x2="23" y2="24" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#f472b6" />
+                <stop offset="1" stop-color="#c026d3" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-name">LVS Control</span>
+          <span class="brand-sub">wbMSE · 8154 · v1.3</span>
+        </div>
+      </div>
+      <div class="status-badge" id="statusBadge" role="status" aria-live="polite">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Desconectado</span>
+      </div>
+    </header>
+
+    <!-- Conexión -->
+    <section class="card connect-card" aria-label="Conexión Bluetooth">
+      <div class="connect-inner">
+        <div class="card-icon" id="btIconWrapper">
+          <svg id="btIcon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5" />
+          </svg>
+        </div>
+        <div class="connect-info">
+          <h1 class="card-title">Love Spouse <span class="model-tag">8154</span></h1>
+          <p class="card-subtitle" id="connectSubtitle">Buscando dispositivo <code>wbMSE</code> via Web Bluetooth</p>
+          <div class="device-info hidden" id="deviceInfo">
+            <span class="device-label">Conectado</span>
+            <span class="device-name" id="deviceName">wbMSE</span>
+          </div>
+        </div>
+      </div>
+      <div class="connect-actions">
+        <button class="btn btn-connect" id="btnConnect" onclick="handleConnect()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5" />
+          </svg>
+          Escanear y Conectar
+        </button>
+        <button class="btn btn-disconnect hidden" id="btnDisconnect" onclick="handleDisconnect()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+          Desconectar
+        </button>
+      </div>
+    </section>
+
+    <!-- Control de velocidad -->
+    <section class="card control-card" id="controlCard" aria-label="Control de velocidad">
+      <div class="control-header">
+        <h2 class="section-title">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            aria-hidden="true">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14" />
+          </svg>
+          Velocidad
+        </h2>
+        <!-- Burst indicator -->
+        <div class="burst-indicator" id="burstIndicator">
+          <span class="burst-dot"></span>
+          <span class="burst-label">Ráfaga 250ms</span>
+        </div>
+      </div>
+
+      <!-- Speeds -->
+      <div class="speed-row" role="group" aria-label="Velocidades">
+        <button class="btn btn-speed" id="btnLow" onclick="selectSpeed('LOW')" disabled>
+          <div class="speed-icon speed-low">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="3" y="16" width="4" height="5" rx="1" />
+              <rect x="10" y="12" width="4" height="9" rx="1" opacity=".3" />
+              <rect x="17" y="8" width="4" height="13" rx="1" opacity=".15" />
+            </svg>
+          </div>
+          <span class="speed-label-txt">Baja</span>
+          <code class="speed-hex">E4 9C 6C</code>
+        </button>
+
+        <button class="btn btn-speed" id="btnMed" onclick="selectSpeed('MED')" disabled>
+          <div class="speed-icon speed-med">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="3" y="16" width="4" height="5" rx="1" />
+              <rect x="10" y="12" width="4" height="9" rx="1" />
+              <rect x="17" y="8" width="4" height="13" rx="1" opacity=".25" />
+            </svg>
+          </div>
+          <span class="speed-label-txt">Media</span>
+          <code class="speed-hex">E7 07 5E</code>
+        </button>
+
+        <button class="btn btn-speed" id="btnHigh" onclick="selectSpeed('HIGH')" disabled>
+          <div class="speed-icon speed-high">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="3" y="16" width="4" height="5" rx="1" />
+              <rect x="10" y="12" width="4" height="9" rx="1" />
+              <rect x="17" y="8" width="4" height="13" rx="1" />
+            </svg>
+          </div>
+          <span class="speed-label-txt">Alta</span>
+          <code class="speed-hex">E6 8E 4F</code>
+        </button>
+      </div>
+
+      <!-- Emergency Stop -->
+      <button class="btn btn-stop" id="btnStop" onclick="emergencyStop()" disabled>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="4" y="4" width="16" height="16" rx="3" />
+        </svg>
+        <span>Parada de Emergencia</span>
+        <code class="stop-hex">E5 15 7D</code>
+      </button>
+    </section>
+
+    <!-- Shake Mode -->
+    <section class="card shake-card" aria-label="Modo Shake">
+      <div class="shake-header">
+        <div>
+          <h2 class="section-title">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              aria-hidden="true">
+              <path d="M12 2a10 10 0 1 0 10 10" />
+              <path d="M12 6v6l4 2" />
+            </svg>
+            Modo Shake
+          </h2>
+          <p class="shake-desc">Mueve el dispositivo para controlar la intensidad</p>
+        </div>
+        <button class="btn-toggle" id="btnShake" onclick="toggleShakeMode()" disabled>
+          <span class="toggle-thumb"></span>
+        </button>
+      </div>
+
+      <!-- Accel display -->
+      <div class="accel-display" id="accelDisplay">
+        <div class="accel-row">
+          <div class="accel-axis">
+            <span class="axis-label">X</span>
+            <div class="axis-bar">
+              <div class="axis-fill" id="axisX"></div>
+            </div>
+            <span class="axis-val" id="axisXVal">0.0</span>
+          </div>
+          <div class="accel-axis">
+            <span class="axis-label">Y</span>
+            <div class="axis-bar">
+              <div class="axis-fill" id="axisY"></div>
+            </div>
+            <span class="axis-val" id="axisYVal">0.0</span>
+          </div>
+          <div class="accel-axis">
+            <span class="axis-label">Z</span>
+            <div class="axis-bar">
+              <div class="axis-fill" id="axisZ"></div>
+            </div>
+            <span class="axis-val" id="axisZVal">0.0</span>
+          </div>
+        </div>
+        <div class="accel-intensity">
+          <span class="accel-intensity-label">Intensidad</span>
+          <div class="intensity-bar">
+            <div class="intensity-fill" id="intensityFill"></div>
+          </div>
+          <span class="intensity-level" id="intensityLevel">—</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Settings -->
+    <section class="card settings-card" aria-label="Configuración técnica">
+      <button class="settings-toggle-btn" id="settingsToggle" onclick="toggleSettings()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+        Configuración técnica
+        <svg class="chevron" id="settingsChevron" width="14" height="14" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      <div class="settings-body hidden" id="settingsBody">
+        <!-- Packet mode -->
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">Modo de paquete</span>
+            <span class="setting-desc">11B (spec) · 18B (verificado)</span>
+          </div>
+          <div class="mode-switcher">
+            <button class="mode-btn mode-active" id="modeBtn11" onclick="setPacketMode(11)">11B</button>
+            <button class="mode-btn" id="modeBtn18" onclick="setPacketMode(18)">18B</button>
+          </div>
+        </div>
+
+        <!-- Burst interval -->
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">Intervalo de ráfaga</span>
+            <span class="setting-desc" id="intervalDesc">250 ms</span>
+          </div>
+          <input type="range" class="interval-slider" id="intervalSlider" min="100" max="1000" step="50" value="250"
+            oninput="updateInterval(this.value)" />
+        </div>
+
+        <!-- Packet preview -->
+        <div class="packet-preview" id="packetPreview">
+          <span class="pp-label">Paquete actual</span>
+          <code class="pp-hex" id="ppHex">— sin velocidad seleccionada —</code>
+        </div>
+
+        <!-- Tech grid -->
+        <div class="tech-mini-grid">
+          <div class="tmi"><span>Nombre BLE</span><code>wbMSE</code></div>
+          <div class="tmi"><span>Company ID</span><code>0xFFF0</code></div>
+          <div class="tmi"><span>Prefix (8B)</span><code>6D B6 43 CE 97 FE 42 7C</code></div>
+          <div class="tmi"><span>Header (3B)</span><code>FF FF 00</code></div>
+          <div class="tmi"><span>Apéndice (4B)</span><code>03 03 8F AE</code></div>
+          <div class="tmi"><span>Modelo</span><code style="color:var(--pink)">LVS-8154</code></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ MODO DEBUG ══════════════════════════════════════════ -->
+    <section class="card debug-card" aria-label="Modo Depuración">
+
+      <!-- Header colapsable -->
+      <button class="settings-toggle-btn debug-toggle-btn" id="debugToggle" onclick="toggleDebug()">
+        <span class="debug-badge">🔬</span>
+        Modo Depuración — Barrido de Patrones
+        <svg class="chevron" id="debugChevron" width="14" height="14" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      <div class="debug-body hidden" id="debugBody">
+
+        <!-- ── Presets de base ──────────────────────────── -->
+        <div class="db-section-label">Base del comando (bytes 0 y 1)</div>
+        <div class="db-presets">
+          <button class="db-preset-btn" id="dbpStop" onclick="dbSetPreset('STOP')">STOP<br><code>E5·15</code></button>
+          <button class="db-preset-btn" id="dbpLow" onclick="dbSetPreset('LOW')">BAJA<br><code>E4·9C</code></button>
+          <button class="db-preset-btn" id="dbpMed" onclick="dbSetPreset('MED')">MEDIA<br><code>E7·07</code></button>
+          <button class="db-preset-btn" id="dbpHigh" onclick="dbSetPreset('HIGH')">ALTA<br><code>E6·8E</code></button>
+          <button class="db-preset-btn db-preset-custom" id="dbpCustom"
+            onclick="dbSetPreset('CUSTOM')">LIBRE<br><code>——</code></button>
+        </div>
+
+        <!-- ── Bytes editables ─────────────────────────── -->
+        <div class="db-bytes-row">
+          <div class="db-byte-box">
+            <label class="db-byte-label">Byte 0</label>
+            <input class="db-byte-input" id="dbB0" type="text" maxlength="2" value="E6" oninput="dbOnByteInput()"
+              placeholder="E6" />
+          </div>
+          <span class="db-dot">·</span>
+          <div class="db-byte-box">
+            <label class="db-byte-label">Byte 1</label>
+            <input class="db-byte-input" id="dbB1" type="text" maxlength="2" value="8E" oninput="dbOnByteInput()"
+              placeholder="8E" />
+          </div>
+          <span class="db-dot">·</span>
+          <!-- Byte 2 — el objetivo del barrido -->
+          <div class="db-byte-box db-byte-main">
+            <label class="db-byte-label">Byte 2 ← barrido</label>
+            <div class="db-b2-display">
+              <span class="db-b2-hex" id="dbB2Hex">4F</span>
+              <span class="db-b2-dec" id="dbB2Dec">(79)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Slider principal ────────────────────────── -->
+        <div class="db-slider-wrap">
+          <span class="db-slider-edge">00</span>
+          <input type="range" class="db-slider" id="dbSlider" min="0" max="255" value="79"
+            oninput="dbOnSlider(this.value)" onchange="dbOnSlider(this.value)" />
+          <span class="db-slider-edge">FF</span>
+        </div>
+
+        <!-- Valor rápido de hex: input directo -->
+        <div class="db-hex-direct">
+          <span class="db-hdl">Valor directo (hex):</span>
+          <input class="db-hex-input" id="dbHexDirect" type="text" maxlength="2" value="4F" placeholder="00"
+            oninput="dbOnHexDirect(this.value)" />
+          <span class="db-pct" id="dbPct">31%</span>
+        </div>
+
+        <!-- ── Vista previa del paquete ────────────────── -->
+        <div class="db-packet-box">
+          <span class="db-pkt-label">Paquete completo</span>
+          <code class="db-pkt-hex" id="dbPktHex">—</code>
+        </div>
+
+        <!-- ── Controles de envío ──────────────────────── -->
+        <div class="db-ctrl-row">
+          <button class="btn db-btn-send" id="dbBtnSend" onclick="dbSendOnce()" disabled>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+            </svg>
+            Enviar
+          </button>
+          <button class="btn db-btn-burst" id="dbBtnBurst" onclick="dbToggleBurst()" disabled>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="2" />
+              <path
+                d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+            </svg>
+            Ráfaga
+          </button>
+          <button class="btn db-btn-mark" id="dbBtnMark" onclick="dbBookmark()" disabled>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            Marcar
+          </button>
+        </div>
+
+        <!-- ── Auto-barrido ────────────────────────────── -->
+        <div class="db-sweep-box">
+          <div class="db-section-label">Barrido automático</div>
+          <div class="db-sweep-ctrl">
+            <div class="db-sweep-range">
+              <label class="db-byte-label">Desde</label>
+              <input class="db-range-input" id="dbSwFrom" type="text" maxlength="2" value="00" />
+              <label class="db-byte-label">Hasta</label>
+              <input class="db-range-input" id="dbSwTo" type="text" maxlength="2" value="FF" />
+            </div>
+            <div class="db-sweep-speed">
+              <label class="db-byte-label" id="dbSwDelayLabel">Pausa: 1.0s</label>
+              <input type="range" class="db-sweep-slider" id="dbSwDelay" min="200" max="4000" step="100" value="1000"
+                oninput="dbUpdateSweepDelay(this.value)" />
+            </div>
+          </div>
+          <div class="db-sweep-actions">
+            <button class="btn db-btn-sweep-start" id="dbBtnSweepStart" onclick="dbStartSweep()" disabled>
+              ▶ Iniciar barrido
+            </button>
+            <button class="btn db-btn-sweep-stop" id="dbBtnSweepStop" onclick="dbStopSweep()" disabled>
+              ⏹ Detener
+            </button>
+            <div class="db-sweep-progress">
+              <div class="db-sw-bar">
+                <div class="db-sw-fill" id="dbSwFill"></div>
+              </div>
+              <span class="db-sw-val" id="dbSwVal">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Marcadores guardados ────────────────────── -->
+        <div class="db-marks-wrap" id="dbMarksWrap">
+          <div class="db-marks-header">
+            <div class="db-section-label">Patrones marcados</div>
+            <button class="btn-clear" onclick="dbCopyMarks()" title="Copiar al portapapeles">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+            </button>
+          </div>
+          <div class="db-marks-list" id="dbMarksList">
+            <span class="db-no-marks">Ningún patrón marcado aún.</span>
+          </div>
+        </div>
+
+      </div><!-- /debug-body -->
+    </section>
+
+    <!-- Activity Log -->
+    <section class="card log-card" aria-label="Activity Log">
+      <div class="log-header">
+        <h2 class="section-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+          Activity Log
+        </h2>
+        <button class="btn-clear" onclick="clearLog()" title="Limpiar">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6l-1 14H6L5 6" />
+          </svg>
+        </button>
+      </div>
+      <div class="log-body" id="logBody" role="log" aria-live="polite"></div>
+    </section>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
