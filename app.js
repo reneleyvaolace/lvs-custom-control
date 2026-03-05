@@ -77,6 +77,7 @@ let gShakeThrottle = null;   // para throttle del acelerómetro
 let gShakeLastCmd = null;   // último comando enviado por shake
 let gMainIntensity = 0;     // Intensidad del slider principal (0-100)
 let gActiveModel = '8154';  // Model por defecto
+let gDeepScan = false;      // Modo de escaneo sin filtros
 
 /* ══════════════════════════════════════════════════════════
    REFERENCIAS DOM
@@ -126,6 +127,7 @@ const el = {
   mainIntensityHex: $('mainIntensityHex'),
   activeModelTitle: $('activeModelTitle'),
   targetNamePrefix: $('targetNamePrefix'),
+  btnDeepScan: $('btnDeepScan'),
 };
 
 /* ══════════════════════════════════════════════════════════
@@ -348,21 +350,42 @@ async function handleConnect() {
     const m = MODELS[gActiveModel];
     const targetFullName = `${m.blePrefix}${m.id}`;
 
-    log(`Buscando: ${targetFullName} o prefijo ${m.blePrefix}…`, 'info');
+    log(gDeepScan ? 'Escaneando TODOS los dispositivos (Modo Profundo)…' : `Escaneando dispositivos (Filtro amplio: ${targetFullName}, wb, LVS)…`, 'info');
 
-    gDevice = await navigator.bluetooth.requestDevice({
-      filters: [
-        { namePrefix: m.blePrefix },       // Prioridad 1: Prefijo wbMSE
-        { name: targetFullName },          // Prioridad 2: Nombre exacto
-        { namePrefix: m.id },              // Prioridad 3: Solo el ID (ej 8154)
-        { manufacturerData: [{ companyIdentifier: COMPANY_ID }] }, // Prioridad 4: Chipset 0xFFF0
-      ],
-      optionalServices: [
-        SERVICE_UUID,
-        '0000180a-0000-1000-8000-00805f9b34fb',
-        'battery_service',
-      ],
-    });
+    // Construir opciones
+    let options = {};
+    if (gDeepScan) {
+      options = {
+        acceptAllDevices: true,
+        optionalServices: [
+          SERVICE_UUID,
+          '0000180a-0000-1000-8000-00805f9b34fb',
+          'battery_service',
+          '0000fff1-0000-1000-8000-00805f9b34fb',
+          '0000fff2-0000-1000-8000-00805f9b34fb'
+        ]
+      };
+    } else {
+      options = {
+        filters: [
+          { namePrefix: 'wb' },
+          { namePrefix: 'LVS' },
+          { namePrefix: 'Love' },
+          { namePrefix: m.id },
+          { services: [SERVICE_UUID] },
+          { manufacturerData: [{ companyIdentifier: COMPANY_ID }] }
+        ],
+        optionalServices: [
+          SERVICE_UUID,
+          '0000180a-0000-1000-8000-00805f9b34fb',
+          'battery_service',
+          '0000fff1-0000-1000-8000-00805f9b34fb',
+          '0000fff2-0000-1000-8000-00805f9b34fb'
+        ]
+      };
+    }
+
+    gDevice = await navigator.bluetooth.requestDevice(options);
 
     log(`✓ Encontrado: "${gDevice.name || '(sin nombre)'}"`, 'success');
     setStatus('connecting');
@@ -724,6 +747,12 @@ function selectModel(id) {
   el.targetNamePrefix.textContent = `${m.blePrefix}${m.id}`;
 
   log(`Modelo seleccionado: ${m.name} (${m.id})`, 'info');
+}
+
+function toggleDeepScan() {
+  gDeepScan = !gDeepScan;
+  el.btnDeepScan.classList.toggle('on', gDeepScan);
+  log(`Modo de escaneo profundo: ${gDeepScan ? 'ACTIVADO' : 'DESACTIVADO'}`, gDeepScan ? 'warn' : 'info');
 }
 
 /* ════════════════════════════════════════════════════════
