@@ -28,7 +28,8 @@ Establecer y mantener un repositorio privado en GitHub para el proyecto `lvs-cus
 
 ### Restricciones / Historial de Aprendizaje
 - **Seguridad:** El archivo `.env` y los logs de actividad (`activity.log`) NUNCA deben subirse al repositorio público o privado por razones de seguridad y limpieza.
-- **Idempotencia:** Si el repositorio ya existe, el script de vinculación debe manejarlo sin fallar (o detectar el error).
+- **Idempotencia:** Si el repositorio ya existe, el script de vinculación debe manejarlo sin fallar.
+- **Conectividad:** Sincronización exitosa con la URL proporcionada por el usuario el 2026-03-04.
 
 ### Skills Utilizadas
 - GitHub MCP Server (create_repository).

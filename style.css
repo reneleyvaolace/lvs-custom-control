@@ -229,6 +229,36 @@ body {
   }
 }
 
+/* ── Header Status Group ─────────────────────────────────── */
+.header-status-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.battery-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-2);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 5px 10px;
+  border-radius: 999px;
+  transition: var(--t);
+}
+
+.battery-badge svg {
+  opacity: .7;
+}
+
+.battery-badge.hidden {
+  display: none;
+}
+
 /* ── Cards ────────────────────────────────────────────────── */
 .card {
   background: var(--bg-card);
@@ -529,6 +559,85 @@ body {
 
 .btn-speed.active-btn .speed-hex {
   color: var(--pink);
+}
+
+/* Intensity Slider */
+.intensity-slider-wrap {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 4px 0;
+}
+
+.intensity-slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.isl-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-3);
+}
+
+.isl-val {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--pink);
+}
+
+.main-intensity-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+}
+
+.main-intensity-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border: 3px solid var(--pink);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(244, 114, 182, 0.4);
+  transition: transform 0.1s ease;
+}
+
+.main-intensity-slider:active::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+
+.isl-footer {
+  display: flex;
+  justify-content: center;
+}
+
+.isl-footer code {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-3);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.isl-footer code span {
+  color: var(--pink);
+  font-weight: 700;
 }
 
 /* Stop button */

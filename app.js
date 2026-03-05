@@ -70,6 +70,7 @@ let gBurstMs = 250;    // ms entre ráfagas
 let gShakeMode = false;  // estado del modo shake
 let gShakeThrottle = null;   // para throttle del acelerómetro
 let gShakeLastCmd = null;   // último comando enviado por shake
+let gMainIntensity = 0;     // Intensidad del slider principal (0-100)
 
 /* ══════════════════════════════════════════════════════════
    REFERENCIAS DOM
@@ -110,6 +111,13 @@ const el = {
   ppHex: $('ppHex'),
   // Log
   logBody: $('logBody'),
+  // Battery
+  batteryBadge: $('batteryBadge'),
+  batteryPct: $('batteryPct'),
+  // Intensity
+  mainIntensitySlider: $('mainIntensitySlider'),
+  mainIntensityVal: $('mainIntensityVal'),
+  mainIntensityHex: $('mainIntensityHex'),
 };
 
 /* ══════════════════════════════════════════════════════════
@@ -191,17 +199,16 @@ function setConnectedUI(connected, name = '') {
     el.connectSubtitle.innerHTML = 'Dispositivo listo. Selecciona velocidad.';
     setStatus('connected');
     enableSpeedBtns(true);
-    el.btnShake.disabled = false;
-    // Habilitar controles de debug
-    $('dbBtnSend').disabled = false;
-    $('dbBtnBurst').disabled = false;
     $('dbBtnMark').disabled = false;
     $('dbBtnSweepStart').disabled = false;
+    el.mainIntensitySlider.disabled = false;
   } else {
     el.connectSubtitle.innerHTML = 'Buscando dispositivo <code>wbMSE</code> via Web Bluetooth';
     setStatus('disconnected');
     enableSpeedBtns(false);
     el.btnShake.disabled = true;
+    el.mainIntensitySlider.disabled = true;
+    el.batteryBadge.classList.add('hidden');
     stopShakeMode();
     stopBurst();
     clearActiveUI();
@@ -367,6 +374,10 @@ async function handleConnect() {
     el.btIconWrapper.className = 'card-icon ok';
     el.btnConnect.disabled = false;
     setConnectedUI(true, gDevice.name);
+
+    // Suscribirse a servicios adicionales
+    subscribeBatteryLevel(gServer);
+
     log(`✅ Listo. Ráfagas a ${gBurstMs}ms · Paquete ${gPacketMode}B`, 'success');
 
   } catch (err) {
@@ -425,6 +436,86 @@ function cleanupState() {
   stopBurst();
   stopShakeMode();
   setConnectedUI(false);
+}
+
+/* ══════════════════════════════════════════════════════════
+   SERVICIO DE BATERÍA
+   ══════════════════════════════════════════════════════════ */
+async function subscribeBatteryLevel(server) {
+  try {
+    const service = await server.getPrimaryService('battery_service');
+    const characteristic = await service.getCharacteristic('battery_level');
+
+    characteristic.addEventListener('characteristicvaluechanged', (event) => {
+      const value = event.target.value.getUint8(0);
+      updateBatteryUI(value);
+    });
+
+    await characteristic.startNotifications();
+    const initialValue = await characteristic.readValue();
+    updateBatteryUI(initialValue.getUint8(0));
+
+    log(`🔋 Suscrito a nivel de batería: ${initialValue.getUint8(0)}%`, 'success');
+  } catch (err) {
+    log(`⚠️ Servicio de batería no disponible: ${err.message}`, 'warn');
+  }
+}
+
+function updateBatteryUI(percent) {
+  el.batteryPct.textContent = `${percent}%`;
+  el.batteryBadge.classList.remove('hidden');
+
+  // Cambiar color según nivel
+  if (percent > 60) el.batteryBadge.style.color = 'var(--green)';
+  else if (percent > 20) el.batteryBadge.style.color = 'var(--amber)';
+  else el.batteryBadge.style.color = 'var(--red)';
+}
+
+/* ══════════════════════════════════════════════════════════
+   COMTROL DE INTENSIDAD PROPORCIONAL
+   ══════════════════════════════════════════════════════════ */
+function updateMainIntensity(value) {
+  gMainIntensity = parseInt(value, 10);
+  el.mainIntensityVal.textContent = `${gMainIntensity}%`;
+
+  const intensityByte = Math.round(gMainIntensity * 2.55);
+  const hex = intensityByte.toString(16).padStart(2, '0').toUpperCase();
+  el.mainIntensityHex.textContent = hex;
+
+  // Actualizar slider visual
+  el.mainIntensitySlider.style.background =
+    `linear-gradient(90deg, var(--pink) ${gMainIntensity}%, rgba(255,255,255,.1) ${gMainIntensity}%)`;
+
+  if (gShakeMode) {
+    log('Desactiva Shake Mode para usar el slider.', 'warn');
+    return;
+  }
+
+  // Usar base de HIGH para el comando proporcional
+  const cmd = new Uint8Array([0xE6, 0x8E, intensityByte]);
+
+  // Si es 0, enviamos STOP literal para mayor seguridad
+  if (gMainIntensity === 0) {
+    emergencyStop();
+    return;
+  }
+
+  // Actualizar UI activa
+  clearActiveUI();
+  setActiveSpeed(null); // No mostrar ninguna velocidad fija como activa
+
+  // Envío vía ráfaga (reutilizando lógica de burst)
+  stopBurst();
+
+  // Crear un comando temporal en CMD para que startBurst lo use si quisiéramos, 
+  // pero mejor inyectamos un envío directo y un intervalo manual suave.
+  writeCommand(cmd, `SLIDER:${gMainIntensity}%`, false);
+
+  gBurstInterval = setInterval(() => {
+    writeCommand(cmd, `SLIDER ♻`, true);
+  }, gBurstMs);
+
+  el.burstIndicator.classList.add('active');
 }
 
 /* ══════════════════════════════════════════════════════════

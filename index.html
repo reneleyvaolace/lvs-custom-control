@@ -44,9 +44,18 @@
           <span class="brand-sub">wbMSE · 8154 · v1.3</span>
         </div>
       </div>
-      <div class="status-badge" id="statusBadge" role="status" aria-live="polite">
-        <span class="status-dot" id="statusDot"></span>
-        <span id="statusText">Desconectado</span>
+      <div class="header-status-group">
+        <div class="battery-badge hidden" id="batteryBadge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="7" width="16" height="10" rx="2" />
+            <line x1="22" y1="11" x2="22" y2="13" />
+          </svg>
+          <span id="batteryPct">--%</span>
+        </div>
+        <div class="status-badge" id="statusBadge" role="status" aria-live="polite">
+          <span class="status-dot" id="statusDot"></span>
+          <span id="statusText">Desconectado</span>
+        </div>
       </div>
     </header>
 
@@ -141,6 +150,19 @@
           <span class="speed-label-txt">Alta</span>
           <code class="speed-hex">E6 8E 4F</code>
         </button>
+      </div>
+
+      <!-- Intensity Slider -->
+      <div class="intensity-slider-wrap">
+        <div class="intensity-slider-header">
+          <span class="isl-label">Intensidad Proporcional</span>
+          <span class="isl-val" id="mainIntensityVal">0%</span>
+        </div>
+        <input type="range" class="main-intensity-slider" id="mainIntensitySlider" min="0" max="100" value="0" step="1"
+          oninput="updateMainIntensity(this.value)" disabled />
+        <div class="isl-footer">
+          <code>E6 8E <span id="mainIntensityHex">00</span></code>
+        </div>
       </div>
 
       <!-- Emergency Stop -->
