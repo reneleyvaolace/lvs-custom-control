@@ -395,20 +395,21 @@ async function handleConnect() {
 
     let service;
     try {
+      // Intentar el estándar FFF0
       service = await gServer.getPrimaryService(SERVICE_UUID);
       log('Servicio 0xFFF0 encontrado ✓', 'success');
     } catch {
-      log('⚠️ FFF0 no hallado — enumerando servicios…', 'warn');
-      try {
-        const svcs = await gServer.getPrimaryServices();
-        svcs.forEach(s => log(`  Servicio: ${s.uuid}`, 'info'));
-        if (svcs.length) {
-          service = svcs[0];
-          log(`Usando: ${service.uuid}`, 'warn');
-        } else {
-          throw new Error('Sin servicios GATT disponibles.');
-        }
-      } catch (e) { throw new Error('No se pudo descubrir servicios: ' + e.message); }
+      log('⚠️ FFF0 no hallado — buscando servicios alternativos…', 'warn');
+      const svcs = await gServer.getPrimaryServices();
+      // Buscar cualquier cosa que se parezca a FFF0 o FFE0
+      service = svcs.find(s => s.uuid.includes('fff0') || s.uuid.includes('ffe0') || s.uuid.includes('fff1'));
+
+      if (!service && svcs.length > 0) {
+        service = svcs[0]; // Fuerza bruta: usar el primero
+        log(`Usando servicio por defecto: ${service.uuid}`, 'warn');
+      }
+
+      if (!service) throw new Error('El dispositivo no expone servicios compatibles.');
     }
 
     gChar = await findWriteChar(service);
@@ -439,27 +440,19 @@ async function handleConnect() {
 }
 
 async function findWriteChar(service) {
-  for (const uuid of CHAR_UUIDS) {
-    try {
-      const c = await service.getCharacteristic(uuid);
-      if (c.properties.write || c.properties.writeWithoutResponse) {
-        log(`Característica: ${uuid.slice(0, 12)}… ✓`, 'success');
-        return c;
-      }
-    } catch (_) { /* uuid no disponible */ }
-  }
-  // Fallback
   try {
-    log('Enumerando todas las características…', 'warn');
-    const all = await service.getCharacteristics();
-    for (const c of all) {
-      if (c.properties.write || c.properties.writeWithoutResponse) {
-        log(`Usando: ${c.uuid}`, 'warn');
-        return c;
-      }
-    }
-  } catch (e) { log('Error enumerando: ' + e.message, 'error'); }
-  return null;
+    const chars = await service.getCharacteristics();
+    // Prioridad 1: FFF2 (estándar de Love Spouse)
+    let ch = chars.find(c => c.uuid.includes('fff2'));
+    // Prioridad 2: Cualquier característica que permita escritura
+    if (!ch) ch = chars.find(c => c.properties.write || c.properties.writeWithoutResponse);
+
+    if (ch) log(`Característica de escritura: ${ch.uuid.slice(0, 8)}… ✓`, 'success');
+    return ch;
+  } catch (e) {
+    log('Error buscando características: ' + e.message, 'error');
+    return null;
+  }
 }
 
 async function handleDisconnect() {
@@ -474,13 +467,13 @@ function onDeviceDisconnected() {
 }
 
 function cleanupState() {
-  gDevice = null; gServer = null; gChar = null;
-  el.btnConnect.disabled = false;
-  stopBurst();
+  gDevice = null;
+  gServer = null;
+  gChar = null;
   stopShakeMode();
-  setConnectedUI(false);
+  stopBurst();
+  updateUIState(false);
 }
-
 /* ══════════════════════════════════════════════════════════
    SERVICIO DE BATERÍA
    ══════════════════════════════════════════════════════════ */
