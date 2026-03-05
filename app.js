@@ -336,6 +336,11 @@ async function handleConnect() {
     return;
   }
   try {
+    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      log('❌ Error de seguridad: Web Bluetooth requiere HTTPS o localhost.', 'error');
+      alert('¡Atención! Web Bluetooth solo funciona en sitios seguros.\nUsa http://localhost:3000 o una conexión HTTPS.');
+      return;
+    }
     setStatus('scanning');
     el.btIconWrapper.className = 'card-icon spinning';
     el.btnConnect.disabled = true;
@@ -343,13 +348,14 @@ async function handleConnect() {
     const m = MODELS[gActiveModel];
     const targetFullName = `${m.blePrefix}${m.id}`;
 
-    log(`Iniciando escaneo para "${targetFullName}" (${m.name})…`, 'info');
+    log(`Buscando: ${targetFullName} o prefijo ${m.blePrefix}…`, 'info');
 
     gDevice = await navigator.bluetooth.requestDevice({
       filters: [
-        { name: targetFullName },                                        // ← Filtro exacto por nombre+barcode
-        { namePrefix: targetFullName },
-        { namePrefix: m.blePrefix },
+        { namePrefix: m.blePrefix },       // Prioridad 1: Prefijo wbMSE
+        { name: targetFullName },          // Prioridad 2: Nombre exacto
+        { namePrefix: m.id },              // Prioridad 3: Solo el ID (ej 8154)
+        { manufacturerData: [{ companyIdentifier: COMPANY_ID }] }, // Prioridad 4: Chipset 0xFFF0
       ],
       optionalServices: [
         SERVICE_UUID,
